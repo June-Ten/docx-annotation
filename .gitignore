@@ -5,4 +5,7 @@ frontend/dist/
 backend-python/.venv/
 backend-python/__pycache__/
 backend-python/uploads/
+backend-python-aspose/.venv/
+backend-python-aspose/__pycache__/
+backend-python-aspose/uploads/
 .env

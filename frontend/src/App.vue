@@ -57,9 +57,22 @@
           </article>
         </section>
 
-        <button class="primary" type="button" :disabled="comments.length === 0 || exporting" @click="exportDocx">
-          {{ exporting ? '生成中...' : '生成批注文件' }}
-        </button>
+        <div class="export-actions">
+          <button
+            class="primary"
+            type="button"
+            @click="exportDocx('python-docx')"
+          >
+            {{ exporting === 'python-docx' ? '生成中...' : '生成批注文件（python-docx）' }}
+          </button>
+          <button
+            class="primary aspose"
+            type="button"
+            @click="exportDocx('aspose')"
+          >
+            {{ exporting === 'aspose' ? '生成中...' : '生成批注文件（Aspose）' }}
+          </button>
+        </div>
       </aside>
     </section>
 
@@ -76,7 +89,9 @@ import Highlighter from 'web-highlighter';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import mammoth from 'mammoth/mammoth.browser';
 
-// 默认走 Vite 代理：/api -> http://localhost:5000。
+// 默认走 Vite 代理：
+// /api/python-docx -> http://localhost:5000
+// /api/aspose -> http://localhost:5001
 // 如需直连后端，可在 .env 中设置 VITE_API_BASE。
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
@@ -92,12 +107,12 @@ const draft = ref(null);
 const commentText = ref('');
 const author = ref('Reviewer');
 const message = ref('');
-const exporting = ref(false);
+const exporting = ref('');
 
 let highlighter = null;
 
 // 必须已经划词并填写批注内容，才能保存一条批注。
-const canSaveComment = computed(() => draft.value && commentText.value.trim());
+const canSaveComment = computed(() => Boolean(draft.value && commentText.value.trim()));
 
 async function handleFileChange(event) {
   // 同一个 input 再次选择同名文件时，浏览器可能不触发 change，因此先清空 value。
@@ -210,19 +225,29 @@ function removeComment(id) {
   comments.value = comments.value.filter((comment) => comment.id !== id);
 }
 
-async function exportDocx() {
+async function exportDocx(backend) {
   if (!sourceFile.value) return;
+  if (exporting.value) return;
 
-  exporting.value = true;
+  exporting.value = backend;
   message.value = '';
 
   try {
+    // 如果用户还没点“保存当前批注”，导出前自动保存当前可用的草稿。
+    if (canSaveComment.value) {
+      saveComment();
+    }
+    if (comments.value.length === 0) {
+      message.value = '请先划词并填写批注内容';
+      return;
+    }
+
     // 后端需要原始 DOCX 文件和批注 JSON，使用 FormData 一次提交。
     const formData = new FormData();
     formData.append('file', sourceFile.value);
     formData.append('comments', JSON.stringify(comments.value));
 
-    const response = await fetch(`${API_BASE}/api/comments/generate`, {
+    const response = await fetch(`${API_BASE}/api/${backend}/comments/generate`, {
       method: 'POST',
       body: formData
     });
@@ -236,13 +261,13 @@ async function exportDocx() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = fileName.value.replace(/\.docx$/i, '-comments.docx');
+    link.download = fileName.value.replace(/\.docx$/i, `-${backend}-comments.docx`);
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
     message.value = error.message || '生成失败';
   } finally {
-    exporting.value = false;
+    exporting.value = '';
   }
 }
 

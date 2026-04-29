@@ -183,6 +183,15 @@ button:disabled {
   background: #16a34a;
 }
 
+.export-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.primary.aspose {
+  background: #7c3aed;
+}
+
 .empty-state,
 .message {
   color: #64748b;
