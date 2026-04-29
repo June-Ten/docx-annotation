@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">DOCX Comment Editor</p>
         <h1>DOCX 划词高亮批注</h1>
-        <p>mammoth 与 Aspose 使用两个独立预览区域，web-highlighter 负责划词高亮，Python 后端生成带 Word 批注的文件。</p>
+        <p>mammoth、Python Aspose、Java Aspose 使用独立预览区域，web-highlighter 负责划词高亮，后端生成带 Word 批注的文件。</p>
       </div>
 
       <div class="upload-actions">
@@ -14,7 +14,11 @@
         </label>
         <label class="upload-button aspose">
           <input type="file" accept=".docx" @change="handleAsposeFileChange" />
-          Aspose 后端预览
+          Python Aspose 后端预览
+        </label>
+        <label class="upload-button java-aspose">
+          <input type="file" accept=".docx" @change="handleJavaAsposeFileChange" />
+          Java Aspose 后端预览
         </label>
       </div>
     </section>
@@ -32,13 +36,17 @@
               mammoth 预览
             </button>
             <button type="button" :class="{ active: activeTab === 'aspose' }" @click="switchTab('aspose')">
-              Aspose 预览
+              Python Aspose 预览
+            </button>
+            <button type="button" :class="{ active: activeTab === 'javaAspose' }" @click="switchTab('javaAspose')">
+              Java Aspose 预览
             </button>
           </div>
         </header>
 
         <div v-show="activeTab === 'mammoth'" ref="mammothPreviewRef" class="doc-preview" v-html="previews.mammoth.html"></div>
         <div v-show="activeTab === 'aspose'" ref="asposePreviewRef" class="doc-preview" v-html="previews.aspose.html"></div>
+        <div v-show="activeTab === 'javaAspose'" ref="javaAsposePreviewRef" class="doc-preview" v-html="previews.javaAspose.html"></div>
 
         <div v-if="!currentPreview.html" class="tab-empty">
           当前 Tab 还没有预览内容，请使用上方对应入口上传 DOCX。
@@ -84,6 +92,9 @@
           <button class="primary aspose" type="button" @click="exportDocx('aspose')">
             {{ exporting === 'aspose' ? '生成中...' : '生成批注文件（Aspose）' }}
           </button>
+          <button class="primary java-aspose" type="button" @click="exportDocx('java-aspose')">
+            {{ exporting === 'java-aspose' ? '生成中...' : '生成批注文件（Java Aspose）' }}
+          </button>
         </div>
       </aside>
     </section>
@@ -104,6 +115,7 @@ import mammoth from 'mammoth/mammoth.browser';
 // 默认走 Vite 代理：
 // /api/python-docx -> http://localhost:5000
 // /api/aspose -> http://localhost:5001
+// /api/java-aspose -> http://localhost:8080
 // 如需直连后端，可在 .env 中设置 VITE_API_BASE。
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
@@ -114,23 +126,27 @@ const exporting = ref('');
 
 const mammothPreviewRef = ref(null);
 const asposePreviewRef = ref(null);
+const javaAsposePreviewRef = ref(null);
 const previewRefs = {
   mammoth: mammothPreviewRef,
-  aspose: asposePreviewRef
+  aspose: asposePreviewRef,
+  javaAspose: javaAsposePreviewRef
 };
 
 const highlighters = {
   mammoth: null,
-  aspose: null
+  aspose: null,
+  javaAspose: null
 };
 
 const previews = reactive({
   mammoth: createPreviewState('mammoth 前端预览'),
-  aspose: createPreviewState('Aspose 后端预览')
+  aspose: createPreviewState('Python Aspose 后端预览'),
+  javaAspose: createPreviewState('Java Aspose 后端预览')
 });
 
 const currentPreview = computed(() => previews[activeTab.value]);
-const hasAnyDocument = computed(() => Boolean(previews.mammoth.html || previews.aspose.html));
+const hasAnyDocument = computed(() => Boolean(previews.mammoth.html || previews.aspose.html || previews.javaAspose.html));
 const canSaveComment = computed(() => Boolean(currentPreview.value.draft && currentPreview.value.commentText.trim()));
 
 function createPreviewState(label) {
@@ -203,6 +219,43 @@ async function handleAsposeFileChange(event) {
     // v-html 渲染是异步更新 DOM 的，等预览内容真实挂载后再初始化对应 Tab 的高亮器。
     await nextTick();
     setupHighlighter('aspose');
+  } catch (error) {
+    message.value = error.message || 'DOCX 解析失败';
+  }
+}
+
+async function handleJavaAsposeFileChange(event) {
+  // 同一个 input 再次选择同名文件时，浏览器可能不触发 change，因此先清空 value。
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+
+  activeTab.value = 'javaAspose';
+  resetPreviewState('javaAspose', file);
+  message.value = '正在上传 DOCX 并使用 Java Aspose 解析...';
+
+  try {
+    // Java Aspose 预览走 Spring Boot 后端解析，前端只负责展示返回的 HTML。
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE}/api/java-aspose/docx/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+
+    const result = await response.json();
+    previews.javaAspose.uploadId = result.uploadId;
+    previews.javaAspose.fileName = result.fileName || file.name;
+    previews.javaAspose.html = result.html;
+    message.value = '';
+
+    // v-html 渲染是异步更新 DOM 的，等预览内容真实挂载后再初始化对应 Tab 的高亮器。
+    await nextTick();
+    setupHighlighter('javaAspose');
   } catch (error) {
     message.value = error.message || 'DOCX 解析失败';
   }
@@ -333,6 +386,8 @@ async function exportDocx(backend) {
     const response =
       backend === 'aspose'
         ? await exportWithAsposeUpload(preview)
+        : backend === 'java-aspose'
+          ? await exportWithJavaAsposeUpload(preview)
         : await exportWithOriginalFile(backend, preview);
 
     if (!response.ok) {
@@ -360,6 +415,18 @@ async function exportWithAsposeUpload(preview) {
   }
 
   return fetch(`${API_BASE}/api/aspose/docx/${preview.uploadId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comments: preview.comments })
+  });
+}
+
+async function exportWithJavaAsposeUpload(preview) {
+  if (!preview.uploadId) {
+    return exportWithOriginalFile('java-aspose', preview);
+  }
+
+  return fetch(`${API_BASE}/api/java-aspose/docx/${preview.uploadId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ comments: preview.comments })
@@ -409,5 +476,6 @@ async function readError(response) {
 onBeforeUnmount(() => {
   destroyHighlighter('mammoth');
   destroyHighlighter('aspose');
+  destroyHighlighter('javaAspose');
 });
 </script>

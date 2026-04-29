@@ -93,6 +93,10 @@ button:disabled {
   background: #7c3aed;
 }
 
+.upload-button.java-aspose {
+  background: #ea580c;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -226,6 +230,10 @@ button:disabled {
 
 .primary.aspose {
   background: #7c3aed;
+}
+
+.primary.java-aspose {
+  background: #ea580c;
 }
 
 .empty-state,

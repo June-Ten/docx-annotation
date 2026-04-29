@@ -15,6 +15,11 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/aspose/, '/api')
+      },
+      '/api/java-aspose': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/java-aspose/, '/api')
       }
     }
   }
