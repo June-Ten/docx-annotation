@@ -76,12 +76,17 @@ import Highlighter from 'web-highlighter';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import mammoth from 'mammoth/mammoth.browser';
 
+// 默认走 Vite 代理：/api -> http://localhost:5000。
+// 如需直连后端，可在 .env 中设置 VITE_API_BASE。
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
+// DOCX 预览容器和当前文件状态。
 const previewRef = ref(null);
 const sourceFile = ref(null);
 const fileName = ref('');
 const html = ref('');
+
+// comments 是最终提交给后端的批注列表；draft 是当前刚划词但还未保存的批注。
 const comments = ref([]);
 const draft = ref(null);
 const commentText = ref('');
@@ -91,9 +96,11 @@ const exporting = ref(false);
 
 let highlighter = null;
 
+// 必须已经划词并填写批注内容，才能保存一条批注。
 const canSaveComment = computed(() => draft.value && commentText.value.trim());
 
 async function handleFileChange(event) {
+  // 同一个 input 再次选择同名文件时，浏览器可能不触发 change，因此先清空 value。
   const file = event.target.files?.[0];
   event.target.value = '';
   if (!file) return;
@@ -106,10 +113,13 @@ async function handleFileChange(event) {
   message.value = '正在解析 DOCX...';
 
   try {
+    // mammoth 在浏览器端直接把 DOCX ArrayBuffer 转成 HTML，不需要先上传后端。
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.convertToHtml({ arrayBuffer });
     html.value = result.value;
     message.value = result.messages.length ? 'DOCX 已预览，部分格式可能被 mammoth 简化。' : '';
+
+    // v-html 渲染是异步更新 DOM 的，等预览内容真实挂载后再初始化高亮器。
     await nextTick();
     setupHighlighter();
   } catch (error) {
@@ -118,14 +128,17 @@ async function handleFileChange(event) {
 }
 
 function setupHighlighter() {
+  // 每次上传新文件都会重新渲染预览，需要重新绑定 highlighter。
   destroyHighlighter();
   if (!previewRef.value) return;
 
+  // 只允许在预览区域内高亮，排除按钮、输入框等交互元素。
   highlighter = new Highlighter({
     $root: previewRef.value,
     exceptSelectors: ['button', 'input', 'textarea']
   });
 
+  // 用户划词后，web-highlighter 会自动给选区加高亮，并返回可序列化的 source。
   highlighter.on(Highlighter.event.CREATE, ({ sources }) => {
     const source = sources?.[0];
     const selectedText = source?.text?.replace(/\s+/g, ' ').trim();
@@ -135,6 +148,7 @@ function setupHighlighter() {
       id: source.id,
       source,
       selectedText,
+      // 后端按“文本 + 第几次出现”重新定位到原始 DOCX。
       occurrence: countOccurrenceBeforeSelection(selectedText)
     };
     commentText.value = '';
@@ -145,10 +159,12 @@ function setupHighlighter() {
 }
 
 function destroyHighlighter() {
+  // 当前库没有强制销毁逻辑；置空引用，等待新预览重新初始化。
   highlighter = null;
 }
 
 function countOccurrenceBeforeSelection(selectedText) {
+  // 统计当前选中文本在预览区域里已经出现过几次，用于区分重复文本。
   const selection = window.getSelection();
   const root = previewRef.value;
   if (!selection || !root || selection.rangeCount === 0) return 0;
@@ -172,6 +188,7 @@ function countOccurrenceBeforeSelection(selectedText) {
 }
 
 function saveComment() {
+  // 把当前选区、批注内容和 highlighter source 保存起来，后续统一提交后端。
   if (!canSaveComment.value) return;
 
   comments.value.push({
@@ -189,6 +206,7 @@ function saveComment() {
 }
 
 function removeComment(id) {
+  // 这里只删除右侧批注数据；已绘制的高亮保留，便于用户知道曾经选中过哪里。
   comments.value = comments.value.filter((comment) => comment.id !== id);
 }
 
@@ -199,6 +217,7 @@ async function exportDocx() {
   message.value = '';
 
   try {
+    // 后端需要原始 DOCX 文件和批注 JSON，使用 FormData 一次提交。
     const formData = new FormData();
     formData.append('file', sourceFile.value);
     formData.append('comments', JSON.stringify(comments.value));
@@ -212,6 +231,7 @@ async function exportDocx() {
       throw new Error(await readError(response));
     }
 
+    // 后端返回的是生成后的 docx blob，创建临时下载链接触发浏览器下载。
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -227,10 +247,12 @@ async function exportDocx() {
 }
 
 function normalizeText(value) {
+  // 折叠空白，降低 mammoth HTML 文本和 Word 原文之间的空白差异。
   return value.replace(/\s+/g, ' ').trim();
 }
 
 function getInitials(value) {
+  // Word 批注需要 initials 字段；没有作者时使用默认 RV。
   const normalized = value.trim();
   if (!normalized) return 'RV';
   return normalized
@@ -242,6 +264,7 @@ function getInitials(value) {
 }
 
 async function readError(response) {
+  // 优先读取后端 JSON message；如果不是 JSON，就直接显示文本响应。
   const text = await response.text();
   try {
     const payload = JSON.parse(text);
