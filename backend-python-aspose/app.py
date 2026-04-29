@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import shutil
 import tempfile
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,6 +33,63 @@ class LocatedComment:
     initials: str
 
 
+@app.post("/api/docx/upload")
+def upload_docx_for_preview():
+    """上传 DOCX，使用 Aspose.Words 转成 HTML 后返回给前端预览。"""
+
+    uploaded_file = request.files.get("file")
+    if uploaded_file is None:
+        return jsonify({"message": "请上传 DOCX 文件"}), 400
+
+    original_filename = uploaded_file.filename or "document.docx"
+    if not original_filename.lower().endswith(".docx"):
+        return jsonify({"message": "仅支持 .docx 文件"}), 400
+
+    upload_id = uuid.uuid4().hex[:12]
+    upload_dir = UPLOAD_DIR / upload_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # 原文件固定保存为 original.docx，后续按 uploadId 生成批注文件。
+    original_path = upload_dir / "original.docx"
+    uploaded_file.save(original_path)
+
+    html = convert_docx_to_html(original_path)
+    return jsonify({
+        "uploadId": upload_id,
+        "fileName": original_filename,
+        "html": html,
+    })
+
+
+@app.post("/api/docx/<upload_id>/comments")
+def generate_comments_from_uploaded_docx(upload_id: str):
+    """根据 uploadId 找到已上传的 DOCX，并用 Aspose.Words 生成带批注文件。"""
+
+    upload_dir = UPLOAD_DIR / upload_id
+    input_path = upload_dir / "original.docx"
+    if not input_path.exists():
+        return jsonify({"message": "上传文件不存在，请重新上传 DOCX"}), 404
+
+    comments = read_comments_payload()
+    if not isinstance(comments, list) or len(comments) == 0:
+        return jsonify({"message": "至少需要一条批注"}), 400
+
+    output_path = upload_dir / "aspose-comments.docx"
+    document = aw.Document(str(input_path))
+    applied, skipped = apply_comments(document, comments)
+    document.save(str(output_path))
+
+    response = send_file(
+        output_path,
+        as_attachment=True,
+        download_name=output_path.name,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response.headers["X-Comments-Applied"] = str(applied)
+    response.headers["X-Comments-Skipped"] = str(skipped)
+    return response
+
+
 @app.post("/api/comments/generate")
 def generate_comments_docx():
     """接收原始 DOCX 和批注列表，使用 Aspose.Words 生成带批注的新 DOCX。"""
@@ -39,13 +98,7 @@ def generate_comments_docx():
     if uploaded_file is None:
         return jsonify({"message": "请上传 DOCX 文件"}), 400
 
-    # 前端用 multipart/form-data 传递 comments 字段，内容是 JSON 字符串。
-    comments_payload = request.form.get("comments", "[]")
-    try:
-        comments = json.loads(comments_payload)
-    except json.JSONDecodeError:
-        return jsonify({"message": "批注数据不是合法 JSON"}), 400
-
+    comments = read_comments_payload()
     if not isinstance(comments, list) or len(comments) == 0:
         return jsonify({"message": "至少需要一条批注"}), 400
 
@@ -120,6 +173,20 @@ def normalize_comment(comment: dict) -> dict:
     }
 
 
+def read_comments_payload():
+    """兼容 JSON 请求体和 multipart/form-data 中的 comments 字段。"""
+
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+        return payload.get("comments", [])
+
+    comments_payload = request.form.get("comments", "[]")
+    try:
+        return json.loads(comments_payload)
+    except json.JSONDecodeError:
+        return []
+
+
 def locate_comment(paragraphs: list, comment: dict) -> tuple[object, LocatedComment] | None:
     """按“选中文本 + 第几次出现”在 Aspose 段落中定位批注。"""
 
@@ -157,6 +224,28 @@ def locate_comment(paragraphs: list, comment: dict) -> tuple[object, LocatedComm
             search_from = start + len(selected_text)
 
     return None
+
+
+def convert_docx_to_html(input_path: Path) -> str:
+    """使用 Aspose.Words 将 DOCX 转成 HTML 片段，图片内嵌为 base64。"""
+
+    document = aw.Document(str(input_path))
+    html_path = input_path.with_suffix(".html")
+
+    options = aw.saving.HtmlSaveOptions()
+    options.export_images_as_base64 = True
+    options.pretty_format = True
+    document.save(str(html_path), options)
+
+    html = html_path.read_text(encoding="utf-8", errors="ignore")
+    return extract_body_html(html)
+
+
+def extract_body_html(html: str) -> str:
+    """前端 v-html 只需要 body 内部内容，不需要完整 HTML 文档壳。"""
+
+    match = re.search(r"<body[^>]*>(.*?)</body>", html, flags=re.IGNORECASE | re.DOTALL)
+    return match.group(1).strip() if match else html
 
 
 def rebuild_paragraph_with_comments(document, paragraph, located_comments: list[LocatedComment]) -> int:

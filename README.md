@@ -46,9 +46,9 @@ npm run dev
 
 ## 功能
 
-- 前端上传 DOCX 后用 mammoth.js 转成 HTML 预览。
+- 前端提供两个上传入口和两个预览 Tab：mammoth.js 在浏览器端解析预览，Aspose 后端解析成 HTML 后返回预览；两个 Tab 的预览区域、批注列表和高亮状态彼此独立。
 - 在预览区域划词后，web-highlighter 自动高亮选区。
-- 保存批注后，可分别点击“生成批注文件（python-docx）”或“生成批注文件（Aspose）”，把原始 DOCX 和批注列表发送到不同后端。
+- 保存批注后，可分别点击“生成批注文件（python-docx）”或“生成批注文件（Aspose）”。Aspose 按钮会复用后端上传时保存的原始 DOCX。
 - `backend-python` 用 python-docx 的 `Document.add_comment()` 在匹配文本上生成 Word 批注。
 - `backend-python-aspose` 用 Aspose.Words 的 `CommentRangeStart`、`CommentRangeEnd`、`Comment` 生成 Word 批注。
 
