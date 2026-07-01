@@ -82,18 +82,7 @@ button:disabled {
   display: none;
 }
 
-.upload-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.upload-button.aspose {
-  background: #7c3aed;
-}
-
-.upload-button.java-aspose {
+.upload-button {
   background: #ea580c;
 }
 
@@ -123,22 +112,6 @@ button:disabled {
   margin-top: 4px;
 }
 
-.preview-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.preview-tabs button {
-  background: #e2e8f0;
-  color: #334155;
-  white-space: nowrap;
-}
-
-.preview-tabs button.active {
-  background: #2563eb;
-  color: #fff;
-}
-
 .doc-preview {
   line-height: 1.75;
   min-height: 640px;
@@ -147,11 +120,6 @@ button:disabled {
 
 .doc-preview img {
   max-width: 100%;
-}
-
-.tab-empty {
-  color: #64748b;
-  padding: 32px 44px;
 }
 
 .panel {
@@ -220,19 +188,6 @@ button:disabled {
 }
 
 .primary {
-  background: #16a34a;
-}
-
-.export-actions {
-  display: grid;
-  gap: 10px;
-}
-
-.primary.aspose {
-  background: #7c3aed;
-}
-
-.primary.java-aspose {
   background: #ea580c;
 }
 

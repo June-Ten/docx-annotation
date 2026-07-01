@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@vitejs/plugin-vue": "latest",
-    "mammoth": "latest",
     "vite": "latest",
     "vue": "latest",
     "web-highlighter": "latest"
