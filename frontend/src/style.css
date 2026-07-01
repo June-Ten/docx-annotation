@@ -14,8 +14,11 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 button,
@@ -26,13 +29,15 @@ select {
 }
 
 #app {
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #f3f4f6;
 }
 
@@ -43,9 +48,11 @@ select {
 /* Welcome */
 .welcome {
   flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
   padding: 32px;
+  overflow: auto;
 }
 
 .welcome-card {
@@ -127,12 +134,21 @@ select {
   display: none;
 }
 
+.doc-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* Header */
 .doc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-shrink: 0;
   padding: 12px 20px;
   background: #fff;
   border-bottom: 1px solid var(--border);
@@ -176,6 +192,7 @@ select {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;
   padding: 10px 20px;
   background: #fff;
   border-bottom: 1px solid var(--border);
@@ -262,6 +279,7 @@ select {
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
   position: relative;
 }
 
@@ -270,12 +288,16 @@ select {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: #e5e7eb;
 }
 
 .viewer-scroll {
   flex: 1;
+  min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 28px 24px 12px;
 }
 
@@ -354,6 +376,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 16px 28px;
+  flex-shrink: 0;
   padding: 10px 20px;
   background: #fff;
   border-top: 1px solid var(--border);
@@ -367,6 +390,8 @@ select {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: #fff;
   border-left: 1px solid var(--border);
 }
@@ -375,6 +400,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
 }
@@ -388,13 +414,17 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  flex-shrink: 0;
   padding: 12px 18px;
   border-bottom: 1px solid var(--border);
 }
 
 .comment-list {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   padding: 12px 18px;
 }
 
@@ -486,6 +516,7 @@ select {
 
 .selection-hint {
   margin: 0 18px 8px;
+  flex-shrink: 0;
   padding: 8px 10px;
   border-radius: 8px;
   background: #fffbeb;
@@ -497,6 +528,7 @@ select {
 
 .sidebar-compose {
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
   padding: 12px 18px 16px;
   background: #fafafa;
 }
@@ -567,11 +599,19 @@ select {
 @media (max-width: 960px) {
   .doc-workspace {
     flex-direction: column;
+    min-height: 0;
+  }
+
+  .viewer-column {
+    flex: 1;
+    min-height: 0;
   }
 
   .comment-sidebar {
     width: 100%;
-    max-height: 42vh;
+    height: 38vh;
+    max-height: 38vh;
+    flex-shrink: 0;
     border-left: 0;
     border-top: 1px solid var(--border);
   }

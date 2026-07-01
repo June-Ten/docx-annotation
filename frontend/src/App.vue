@@ -19,7 +19,7 @@
     </section>
 
     <!-- 已上传：文档工作台 -->
-    <template v-else>
+    <div v-else class="doc-layout">
       <header class="doc-header">
         <div class="doc-title">
           <span class="file-icon" aria-hidden="true">
@@ -167,7 +167,7 @@
 
         <button v-else class="sidebar-toggle" type="button" @click="sidebarOpen = true">批注</button>
       </div>
-    </template>
+    </div>
 
     <p v-if="message" class="toast" role="status">{{ message }}</p>
   </div>
