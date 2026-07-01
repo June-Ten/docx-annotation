@@ -12,9 +12,9 @@
   </parent>
 
   <groupId>com.example</groupId>
-  <artifactId>backend-java-apose</artifactId>
+  <artifactId>backend-java-aspose</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>backend-java-apose</name>
+  <name>backend-java-aspose</name>
 
   <properties>
     <java.version>17</java.version>

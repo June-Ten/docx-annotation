@@ -14,7 +14,7 @@ WORKDIR /app
 
 RUN mkdir -p uploads
 
-COPY --from=build /app/target/backend-java-apose-*.jar app.jar
+COPY --from=build /app/target/backend-java-aspose-*.jar app.jar
 
 EXPOSE 8080
 

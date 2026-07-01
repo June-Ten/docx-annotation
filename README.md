@@ -6,7 +6,7 @@
 
 - `backend-python`：Flask + python-docx，默认端口 `5000`。
 - `backend-python-aspose`：Flask + aspose-words，默认端口 `5001`。
-- `backend-java-apose`：Spring Boot + Aspose.Words for Java，默认端口 `8080`。
+- `backend-java-aspose`：Spring Boot + Aspose.Words for Java，默认端口 `8080`。
 
 ## 运行
 
@@ -31,7 +31,7 @@ python app.py
 Java Aspose 后端：
 
 ```bash
-cd backend-java-apose
+cd backend-java-aspose
 mvn spring-boot:run
 ```
 
@@ -61,7 +61,7 @@ npm run dev
 - 保存批注后，可分别点击“生成批注文件（python-docx）”或“生成批注文件（Aspose）”。Aspose 按钮会复用后端上传时保存的原始 DOCX。
 - `backend-python` 用 python-docx 的 `Document.add_comment()` 在匹配文本上生成 Word 批注。
 - `backend-python-aspose` 用 Aspose.Words 的 `CommentRangeStart`、`CommentRangeEnd`、`Comment` 生成 Word 批注。
-- `backend-java-apose` 用 Aspose.Words for Java 的 `CommentRangeStart`、`CommentRangeEnd`、`Comment` 生成 Word 批注。
+- `backend-java-aspose` 用 Aspose.Words for Java 的 `CommentRangeStart`、`CommentRangeEnd`、`Comment` 生成 Word 批注。
 
 ## 说明
 

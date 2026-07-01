@@ -8,6 +8,6 @@ backend-python/uploads/
 backend-python-aspose/.venv/
 backend-python-aspose/__pycache__/
 backend-python-aspose/uploads/
-backend-java-apose/target/
-backend-java-apose/uploads/
+backend-java-aspose/target/
+backend-java-aspose/uploads/
 .env

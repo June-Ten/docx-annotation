@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BackendJavaAposeApplication {
+public class BackendJavaAsposeApplication {
     public static void main(String[] args) {
-        SpringApplication.run(BackendJavaAposeApplication.class, args);
+        SpringApplication.run(BackendJavaAsposeApplication.class, args);
     }
 }
